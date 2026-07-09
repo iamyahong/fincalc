@@ -137,7 +137,7 @@ const ko: Messages = {
     feedbackDesc: "계산기 사용 중 불편한 점이나 개선 사항이 있으시면 아래 이메일로 연락해 주세요. 모든 의견을 소중하게 생각합니다.",
   },
   common: {
-    disclaimer: "이 계산기는 참고용이며, 투자 권유가 아닙니다.",
+    disclaimer: "이 계산기의 결과는 참고용이며, 투자 권유가 아닙니다.",
     calculate: "계산하기",
     share: "공유하기",
     downloadImage: "사진",

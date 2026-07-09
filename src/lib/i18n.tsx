@@ -89,7 +89,7 @@ const ko: Messages = {
   },
   home: {
     title: "금융 계산기",
-    subtitle: "복리, 적립식 투자, 평균 매수가를 쉽고 빠르게.",
+    subtitle: "복리, 적립식 투자, 평균 매수가를 쉽고 빠르게 계산하세.",
     calc1Title: "복리 계산기",
     calc1Desc: "초기 금액에 대한 복리 수익을 계산합니다. 72의 법칙, 복리의 공식 등을 포함합니다.",
     calc2Title: "적립식 복리 계산기",

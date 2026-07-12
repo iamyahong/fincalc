@@ -1,0 +1,84 @@
+name: eoban-worker
+run-name: "eoban-job-${{ inputs.job_id }}"
+
+on:
+  workflow_dispatch:
+    inputs:
+      request:
+        description: "수정 요청 문장"
+        required: true
+        type: string
+      job_id:
+        description: "Eoban 작업 번호"
+        required: true
+        type: string
+
+concurrency:
+  group: eoban-worker
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  pull-requests: write
+  id-token: write
+
+jobs:
+  work:
+    runs-on: ubuntu-latest
+    steps:
+      - name: dev 브랜치 체크아웃 (열쇠는 걸어두지 않음)
+        uses: actions/checkout@v4
+        with:
+          ref: dev
+          token: ${{ secrets.EOBAN_WORKER_PAT }}
+          persist-credentials: false
+          fetch-depth: 0
+
+      - name: Claude 일꾼 실행 (파일 수정만 · 편집 자동 승인)
+        uses: anthropics/claude-code-action@v1
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: "--max-turns 40 --permission-mode acceptEdits"
+          prompt: |
+            너는 Eoban의 코드 수정 일꾼이다. 지금 이 저장소는 dev 브랜치가 체크아웃되어 있다.
+            아래 요청을 최소 변경으로 구현하라.
+
+            요청: ${{ inputs.request }}
+
+            반드시 지킬 규칙:
+            - 파일 도구(Read·Glob·Grep·Edit·Write)만으로 작업하라. Bash 등 셸 명령은 이 환경에서
+              자동 거절되므로 시도하지 마라. 커밋·푸시·PR은 다음 단계가 담당한다.
+            - 의존성 설치(npm·pnpm·yarn install)와 테스트·타입체크·빌드 실행은 하지 마라 —
+              검증은 PR의 자동 게이트가 수행한다. 코드 파일 수정에 집중하라.
+            - .github/ 아래의 어떤 파일도 수정 금지. package.json의 의존성 목록과 lockfile 수정 금지,
+              새 패키지 설치 금지.
+            - 데이터베이스·외부 API 호출 금지. 파일 삭제는 요청이 명시할 때만.
+            - 요청이 모호하면 가장 보수적인 최소 변경을 택하라.
+            - 끝나면 변경한 파일 목록과 한 줄 요약을 출력하라.
+
+      - name: dev에 커밋·푸시 (푸시 순간에 열쇠를 직접 사용)
+        env:
+          REQ: ${{ inputs.request }}
+          JOB: ${{ inputs.job_id }}
+          PUSH_TOKEN: ${{ secrets.EOBAN_WORKER_PAT }}
+        run: |
+          git config user.name "eoban-worker"
+          git config user.email "eoban-worker@users.noreply.github.com"
+          git add -A
+          if git diff --cached --quiet; then
+            echo "변경 없음 — 커밋 생략"
+          else
+            git commit -m "worker: $REQ (eoban-job-$JOB)"
+            git push "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:dev
+          fi
+
+      - name: PR dev→staging 열기 (이미 열려 있으면 통과)
+        env:
+          GH_TOKEN: ${{ secrets.EOBAN_WORKER_PAT }}
+          REQ: ${{ inputs.request }}
+          JOB: ${{ inputs.job_id }}
+        run: |
+          gh pr create --base staging --head dev \
+            --title "worker: $REQ" \
+            --body "Eoban 작업 번호 $JOB — 일꾼이 dev에 반영한 변경입니다. 리허설(staging) 반영 전 검토용." \
+            || echo "열려 있는 PR에 커밋이 추가되었습니다"

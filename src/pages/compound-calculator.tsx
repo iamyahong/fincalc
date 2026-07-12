@@ -683,6 +683,10 @@ export default function CompoundPage() {
         <div className="border-t border-border pt-10">
           {isKo ? <KoreanEducationalContent /> : <EnglishEducationalContent />}
         </div>
+
+        <p className="mt-10 text-center text-xs text-muted-foreground">
+          유니소드 표본 운영 중
+        </p>
       </div>
     </>
   );

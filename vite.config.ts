@@ -34,7 +34,6 @@ export default defineConfig({
   },
   // @ts-ignore — vite-react-ssg extends vite config with ssgOptions
   ssgOptions: {
-    script: "async",
     formatting: "minify",
     includedRoutes() {
       const pages = ["installment", "average-price", "privacy", "contact"];

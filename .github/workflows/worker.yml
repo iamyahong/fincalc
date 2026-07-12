@@ -26,11 +26,12 @@ jobs:
   work:
     runs-on: ubuntu-latest
     steps:
-      - name: dev 브랜치 체크아웃 (푸시 열쇠 = 사람 PAT)
+      - name: dev 브랜치 체크아웃 (열쇠는 걸어두지 않음)
         uses: actions/checkout@v4
         with:
           ref: dev
           token: ${{ secrets.EOBAN_WORKER_PAT }}
+          persist-credentials: false
           fetch-depth: 0
 
       - name: Claude 일꾼 실행 (파일 수정만 · 편집 자동 승인)
@@ -55,10 +56,11 @@ jobs:
             - 요청이 모호하면 가장 보수적인 최소 변경을 택하라.
             - 끝나면 변경한 파일 목록과 한 줄 요약을 출력하라.
 
-      - name: dev에 커밋·푸시 (게이트가 깨어나도록 사람 열쇠 사용)
+      - name: dev에 커밋·푸시 (푸시 순간에 열쇠를 직접 사용)
         env:
           REQ: ${{ inputs.request }}
           JOB: ${{ inputs.job_id }}
+          PUSH_TOKEN: ${{ secrets.EOBAN_WORKER_PAT }}
         run: |
           git config user.name "eoban-worker"
           git config user.email "eoban-worker@users.noreply.github.com"
@@ -67,7 +69,7 @@ jobs:
             echo "변경 없음 — 커밋 생략"
           else
             git commit -m "worker: $REQ (eoban-job-$JOB)"
-            git push origin dev
+            git push "https://x-access-token:${PUSH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:dev
           fi
 
       - name: PR dev→staging 열기 (이미 열려 있으면 통과)
